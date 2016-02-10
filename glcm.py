@@ -13,23 +13,18 @@ from skimage.feature import greycomatrix, greycoprops
 from skimage import data
 
 
-def random_patch(width, height, patch_size):
-    return (
-        random.randrange(0, width - (patch_size + 1)),
-        random.randrange(0, height - (patch_size + 1))
-    )
-
-PATCH_SIZE = 21
+PATCH_SIZE = 7
 
 # read image as greyscale
 image = cv2.imread(sys.argv[1], cv2.IMREAD_GRAYSCALE)
+image_2 = cv2.imread(sys.argv[2], cv2.IMREAD_GRAYSCALE)
 
-# select some patches from grassy areas of the image
-locations = [random_patch(image.shape[0], image.shape[1], PATCH_SIZE) for x in range(0, 5)]
+locations = [(136, 237)]
 
 patches = []
 for loc in locations:
     patches.append(image[loc[0]:loc[0] + PATCH_SIZE, loc[1]:loc[1] + PATCH_SIZE])
+    patches.append(image_2[loc[0]:loc[0] + PATCH_SIZE, loc[1]:loc[1] + PATCH_SIZE])
 
 # compute some GLCM properties each patch
 xs = []
@@ -42,20 +37,29 @@ for patch in patches:
 # create the figure
 fig = plt.figure(figsize=(8, 8))
 
-# display original image with locations of patches
+# display original image with locations of patchea
 ax = fig.add_subplot(3, 2, 1)
 ax.imshow(image, cmap=plt.cm.gray, interpolation='nearest', vmin=0, vmax=255)
 for (y, x) in locations:
     ax.plot(x + PATCH_SIZE / 2, y + PATCH_SIZE / 2, 'gs')
-ax.set_xlabel('Original Image')
+ax.set_xlabel('Shadow')
+ax.set_xticks([])
+ax.set_yticks([])
+ax.axis('image')
+
+ax = fig.add_subplot(3, 2, 2)
+ax.imshow(image_2, cmap=plt.cm.gray, interpolation='nearest', vmin=0, vmax=255)
+for (y, x) in locations:
+    ax.plot(x + PATCH_SIZE / 2, y + PATCH_SIZE / 2, 'gs')
+ax.set_xlabel('Non-shadow')
 ax.set_xticks([])
 ax.set_yticks([])
 ax.axis('image')
 
 # for each patch, plot (dissimilarity, correlation)
-ax = fig.add_subplot(3, 2, 2)
+ax = fig.add_subplot(3, 1, 3)
 ax.plot(xs[:len(patches)], ys[:len(patches)], 'go',
-        label='Random Patch')
+        label='Shadow vs non-shadow patch')
 ax.set_xlabel('GLCM Dissimilarity')
 ax.set_ylabel('GLVM Correlation')
 ax.legend()
@@ -65,8 +69,7 @@ for i, patch in enumerate(patches):
     ax = fig.add_subplot(3, len(patches), len(patches)*1 + i + 1)
     ax.imshow(patch, cmap=plt.cm.gray, interpolation='nearest',
               vmin=0, vmax=255)
-    ax.set_xlabel('Patch %d' % (i + 1))
 
 # display the patches and plot
-fig.suptitle('Grey level co-occurrence matrix features', fontsize=14)
+fig.suptitle('GLCM feature comparison - shadow/non-shadow area', fontsize=14)
 plt.show()
