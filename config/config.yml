@@ -1,37 +1,36 @@
 # these stages take an image and return an image (or list of images)
 preprocess:
     grayscale:
-        desc: convert to a single colour channel (grayscale)
+        name: grayscalify
 #    hsv:
-#        name: convert to hsv colour space
+#        name: hsvify
 #    patchify:
-#        name: select random image patches
-
-# these stages take an image and return
-features:
-    glcm:
-        name: gray-level co-occurrence matrix
-        parameters:
-            - "{{ blergs }}"
-            - "{{ blargs }}"
-            - "{{ blimey }}"
-#    gabor:
-#        name: gabor filters
-#        method: method_name
+#        name: subsample/patchify
 #        parameters:
-#            - "{{ blergs }}"
-#            - "{{ blargs }}"
-#            - "{{ blimey }}"
+#           - (100, 200)
+#           - (200, 200)
+
+# these stages take an image and return their respective features
+features:
+#        glcm:
+#        name: gray-level co-occurrence matrix
+#        features_parameters:
+#            - [0, 45, 90, 135]      # parameter: "angles"
+#            - [0, 1, 2, 3]          # parameter: "dists"
+    gabor:
+        name: gabor filters
+        parameters:
+            - [0.1, 0.2, 0.4, 1, 5] # parameter: "angles"
+            - "{{ blargs }}"        # parameter: "spatial_frequencies"
+            - "{{ blimey }}"
 #    lbp:
 #        name: local binary patterns
-#        method: method_name
 #        parameters:
 #            - "{{ blergs }}"
 #            - "{{ blargs }}"
 #            - "{{ blimey }}"
 
-# this defines the statistical tests used to test each processing method. each
-# processing class MUST have this method.
+# this defines the statistical tests used to test each processing method.
 tests:
     - squared_error
 
