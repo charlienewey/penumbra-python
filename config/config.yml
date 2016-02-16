@@ -1,0 +1,51 @@
+# these stages take an image and return an image (or list of images)
+preprocess:
+    grayscale:
+        desc: convert to a single colour channel (grayscale)
+#    hsv:
+#        name: convert to hsv colour space
+#    patchify:
+#        name: select random image patches
+
+# these stages take an image and return
+features:
+    glcm:
+        name: gray-level co-occurrence matrix
+        parameters:
+            - "{{ blergs }}"
+            - "{{ blargs }}"
+            - "{{ blimey }}"
+#    gabor:
+#        name: gabor filters
+#        method: method_name
+#        parameters:
+#            - "{{ blergs }}"
+#            - "{{ blargs }}"
+#            - "{{ blimey }}"
+#    lbp:
+#        name: local binary patterns
+#        method: method_name
+#        parameters:
+#            - "{{ blergs }}"
+#            - "{{ blargs }}"
+#            - "{{ blimey }}"
+
+# this defines the statistical tests used to test each processing method. each
+# processing class MUST have this method.
+tests:
+    - squared_error
+
+## the input data, with associated ground truth.
+#input:
+#    my_dataset:
+#        ground_truth: /path/to/my_dataset/ground_truth
+#        data: /path/to/my_dataset/data
+
+## this defines a series of stages to process each image pair with
+#pipelines:
+#    one:
+#        - hsv
+#        - gabor
+#    two:
+#        - grayscale
+#        - glcm
