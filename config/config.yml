@@ -10,19 +10,23 @@ preprocess:
 #           - (100, 200)
 #           - (200, 200)
 
-# these stages take an image and return their respective features
+# these stages take an image and return their respective features in a
+# dictionary format, like this:
+# {
+#     "parameters": [param_1, param_2],
+#     "features": [features_1, features_2, ..., features_n]
+# }
 features:
 #        glcm:
 #        name: gray-level co-occurrence matrix
 #        features_parameters:
-#            - [0, 45, 90, 135]      # parameter: "angles"
-#            - [0, 1, 2, 3]          # parameter: "dists"
+#            - [0, 45, 90, 135]          # parameter: "angles"
+#            - [0, 1, 2, 3]              # parameter: "dists"
     gabor:
-        name: gabor filters
+        name: gabor filter bank
         parameters:
-            - [0.1, 0.2, 0.4, 1, 5] # parameter: "angles"
-            - "{{ blargs }}"        # parameter: "spatial_frequencies"
-            - "{{ blimey }}"
+            - [0.1, 0.2, 0.3, 0.4, 0.5]     # parameter: "spatial_frequencies"
+            - [0, 45, 90, 135]              # parameter: "angles"
 #    lbp:
 #        name: local binary patterns
 #        parameters:
