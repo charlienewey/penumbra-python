@@ -102,5 +102,3 @@ if __name__ == "__main__":
 
             mse = ((ground_truth["image_features"] - image["image_features"]) ** 2).mean(axis=None)
             print("Frequency: %s, Angle: %s = Error: %f" % (image["parameters"][0], image["parameters"][1], mse))
-
-            imshow(image["image_features"], ground_truth["image_features"])
