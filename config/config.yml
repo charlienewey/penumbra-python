@@ -1,54 +1,45 @@
-# these stages take an image and return an image (or list of images)
 preprocess:
-    grayscale:
-        name: grayscalify
-#    hsv:
-#        name: hsvify
-#    patchify:
-#        name: subsample/patchify
-#        parameters:
-#           - (100, 200)
-#           - (200, 200)
+    - name: grayscale
+      description: grayscalify
+      method: to_grayscale
 
-# these stages take an image and return their respective features in a
-# dictionary format, like this:
-# {
-#     "parameters": [param_1, param_2],
-#     "features": [features_1, features_2, ..., features_n]
-# }
+#    - name: hsv
+#      desc: hsvify
+
+#    - name: patchify
+#      desc: subsample/patchify
+#      parameters:
+#          - (100, 200)
+#          - (200, 200)
+
 features:
-#        glcm:
-#        name: gray-level co-occurrence matrix
-#        features_parameters:
-#            - [0, 45, 90, 135]          # parameter: "angles"
-#            - [0, 1, 2, 3]              # parameter: "dists"
-    gabor:
-        name: gabor filter bank
-        parameters:
-            - [0.1, 0.2, 0.3, 0.4, 0.5]     # parameter: "spatial_frequencies"
-            - [0, 45, 90, 135]              # parameter: "angles"
-#    lbp:
+    - name: gabor
+      description: gabor filter bank
+      method: gabor_filter
+      parameters:
+          - [0.1, 0.2, 0.3, 0.4, 0.5]     # parameter: "spatial_frequencies"
+          - [0, 45, 90, 135]              # parameter: "angles"
+
+    - name: glcm
+      description: gray-level co-occurrence matrix
+      method: glcm
+      parameters:
+          - [[0, 1, 2, 3]]                # parameter: "dists"
+          - [[0, 45, 90, 135]]              # parameter: "angles"
+
+#   - lbp:
 #        name: local binary patterns
 #        parameters:
 #            - "{{ blergs }}"
 #            - "{{ blargs }}"
 #            - "{{ blimey }}"
 
-# this defines the statistical tests used to test each processing method.
+# this defines the statistical tests used to evaluate each technique
 tests:
-    - squared_error
+    - mean_squared_error
 
 ## the input data, with associated ground truth.
 #input:
 #    my_dataset:
 #        ground_truth: /path/to/my_dataset/ground_truth
 #        data: /path/to/my_dataset/data
-
-## this defines a series of stages to process each image pair with
-#pipelines:
-#    one:
-#        - hsv
-#        - gabor
-#    two:
-#        - grayscale
-#        - glcm

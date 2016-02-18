@@ -9,7 +9,7 @@ def correlation(ground_truth, features):
     pass
 
 
-def features(image, spatial_frequencies, angles):
+def gabor_filter(image, spatial_frequencies, angles):
     features = {
         "type": __name__.split(".")[-1],
         "features": []

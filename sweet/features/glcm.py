@@ -10,7 +10,7 @@ def correlation(ground_truth, features):
     raise Exception("Not implemented yet")
 
 
-def features(image, angles, dists):
+def glcm(image, angles, dists):
     """
     Extract features from the image.
 
@@ -21,4 +21,5 @@ def features(image, angles, dists):
     Returns:
         A gray-level co-occurrence matrix.
     """
+    print(image.shape)
     return greycomatrix(image, angles, dists, 256, symmetric=True, normed=True)
