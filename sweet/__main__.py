@@ -8,13 +8,14 @@ import os
 import sys
 
 import cv2
+import dill
 import json
 import yaml
 
 
 def imshow(*images):
     """
-    Mostly used for debugging at the moment, but will probably display some nice output eventually.
+    Display an image in a window. Mostly used for debugging at the moment.
     """
     import matplotlib.pyplot as plt
 
@@ -31,6 +32,9 @@ def imshow(*images):
 
 
 def read_config(path):
+    """
+    Read a YAML config file into a data structure and return it. Does what it says on the tin.
+    """
     with open(CONFIG_FILE) as conf_in:
         config = yaml.load(conf_in)
     return config
@@ -50,127 +54,142 @@ def make_method(method, *args):
     return new_method
 
 
-if __name__ == "__main__":
-    # set constants here - will later replace with command-line opts
-    CONFIG_FILE = os.path.join(os.getcwd(), "config/config.yml")
+def run_dill_encoded(what):
+    """
+    Run a function that's been encoded with Dill (this allows me to do multiprocessing).
 
-    # append current directory to system path
-    cur_dir = os.path.dirname(__file__)
-    sys.path.append(cur_dir)
-
-    # get configuration
-    config = read_config(CONFIG_FILE)
-
-    # read input files and make sure everything's hunky-dory
-    # TODO: replace this with something a bit more sensible (list of files, etc)
-    ground_truths = [{"name": sys.argv[1], "img": cv2.imread(sys.argv[1], cv2.IMREAD_COLOR)}]
-    images = [{"name": sys.argv[2], "img": cv2.imread(sys.argv[2], cv2.IMREAD_COLOR)}]
-    assert len(ground_truths) == len(images)
+    http://stackoverflow.com/a/24673524
+    """
+    fun, args = dill.loads(what)
+    return fun(*args)
 
 
-    # This is probably a bit indecipherable if you aren't familiar with introspection, so... sorry
-    # for that. This section imports all of the necessary modules and their functions, fetches the
-    # functions, and appends them to a list, along with their parameters -- effectively creating a
-    # processing pipeline. This pipeline can then be applied multiple times to different image
-    # pairs, and lends itself well to parallelisation.
+def apply_async(pool, fun, args):
+    """
+    Apply a function to a pool asynchronously -- wrapping around the run_dill_encoded(...) function.
+
+    http://stackoverflow.com/a/24673524
+    """
+    return pool.apply_async(run_dill_encoded, (dill.dumps((fun, args)),))
+
+
+def extract_features_and_compare(package, feature, ground_truth, image):
+    feat_gt = feature["method"](ground_truth)
+    feat_im = feature["method"](image)
+
+    results = []
+    for test in package:
+        test_method = getattr(feature["module"], test["name"])
+        result = {
+            "name": feature["name"],
+            "description": feature["description"],
+            test["name"]: test_method(feat_gt, feat_im),
+            "parameters": feature["parameters"]
+        }
+        results.append(result)
+    return results
+
+
+def construct_function_list(config, package):
+    # This is probably a bit indecipherable if you aren't familiar with Python introspection, so...
+    # sorry for that. This section imports all of the specified modules and their functions, fetches
+    # the functions, and appends them to a list along with their parameters -- effectively creating
+    # a processing pipeline. This pipeline can then be applied multiple times to different image
+    # pairs, making processing more efficient.
     #
-    # TODO: chuck a few links on here so that peeps can read what on earth this code is on about
-    prep_chain = []
-    package = "preprocess"
-    for stage in config[package]:
+    # This way of optimising the pipeline keeps memory usage as low as possible, and also lends
+    # itself well to parallelisation.
+    #
+    # * https://docs.python.org/2/library/importlib.html
+    # * https://docs.python.org/2/library/functions.html#getattr
+    # * https://docs.python.org/2.7/reference/compound_stmts.html?highlight=*identifier#function-definitions
+    # * http://stackoverflow.com/a/400823
+    chain = []
+    for link in config[package]:
         # import module and fetch the specified method
-        module_name = ".".join((package, stage["name"]))
+        module_name = ".".join((package, link["name"]))
         module = importlib.import_module(module_name)
-        method = getattr(module, stage["method"])
+        method = getattr(module, link["method"])
 
         # fetch the parameters, generate all parameter possibilities and chuck them into a lambda
         # function so that you only need to call: "method(image)".
-        if "parameters" in stage:
-            for parameters in itertools.product(*stage["parameters"]):
-                prep_chain.append({
-                    "description": stage["description"],
-                    "method": make_method(method, *parameters),
-                    "parameters": parameters
-                })
-        else:
-            prep_chain.append({
-                "description": stage["description"],
-                "method": method
-            })
-
-
-    # This section is similar to the last, except the evaluation stage happens here too -- this is
-    # to reduce memory usage (storing hundreds of images' worth of features in memory is a surefire
-    # way to fry your beloved computer).
-    #
-    # TODO: find some sensible way to remove this duplicated code
-    feat_chain = []
-    package = "features"
-    for stage in config[package]:
-        # import module and fetch the specified method
-        module_name = ".".join((package, stage["name"]))
-        module = importlib.import_module(module_name)
-        method = getattr(module, stage["method"])
-
-        # fetch the parameters, generate all parameter possibilities and chuck them into a lambda
-        # function so that you only need to call: "method(image)".
-        if "parameters" in stage:
-            parameters = list()
-            for parameters in itertools.product(*stage["parameters"]):
-                feat_chain.append({
-                    "name": stage["name"],
-                    "description": stage["description"],
+        if "parameters" in link:
+            for parameters in itertools.product(*link["parameters"]):
+                chain.append({
+                    "name": link["name"],
+                    "description": link["description"],
                     "method": make_method(method, *parameters),
                     "module": module,
                     "parameters": parameters
                 })
         else:
-            feat_chain.append({
-                "name": stage["name"],
-                "description": stage["description"],
+            chain.append({
+                "name": link["name"],
+                "description": link["description"],
                 "method": method,
                 "module": module
             })
 
-    package = "tests"
+    return chain
+
+
+if __name__ == "__main__":
+    # Set constants here - will later replace with command-line opts
+    CONFIG_FILE = os.path.join(os.getcwd(), "config/config.yml")
+
+    # Append current directory to system path
+    cur_dir = os.path.dirname(__file__)
+    sys.path.append(cur_dir)
+
+    # Get configuration
+    config = read_config(CONFIG_FILE)
+
+    # Read input files and make sure everything's hunky-dory
+    # TODO: replace this with something a bit more sensible (list of files, etc)
+    ground_truths = [cv2.imread(sys.argv[1], cv2.IMREAD_COLOR)]
+    images = [cv2.imread(sys.argv[2], cv2.IMREAD_COLOR)]
+    assert len(ground_truths) == len(images)
+
+    # Create the function chains for image preprocessing and feature extraction
+    prep_chain = construct_function_list(config, "preprocess")
+    feat_chain = construct_function_list(config, "features")
+
+    # Here the function chains in prep_chain and feat_chain are applied. Each function in the
+    # preprocessing chain is applied to each image in series, and the preprocessed images are then
+    # run through each feature extraction algorithm individually. These results are then tested.
     results = []
+    pl = multiprocessing.Pool(multiprocessing.cpu_count() - 1)
+    package = "tests"
     for i in range(0, len(ground_truths)):
         # apply preprocessing chain to images
-        gt = ground_truths[i]["img"]
-        im = images[i]["img"]
+        gt = ground_truths[i]
+        im = images[i]
         for link in prep_chain:
             gt = link["method"](gt)
             im = link["method"](im)
+        assert len(gt) == len(im)
 
         # extract features and compare ground truth
-        for feature in feat_chain:
-            feat_gt = feature["method"](gt)
-            feat_im = feature["method"](im)
-            for test in config[package]:
-                test_method = getattr(feature["module"], test["name"])
-                result = {
-                    "name": feature["name"],
-                    "description": feature["description"],
-                    test["name"]: test_method(feat_gt, feat_im),
-                    "parameters": feature["parameters"]
-                }
-                results.append(result)
+        for j in range(0, len(gt)):
+            gtj = gt[j]
+            imj = im[j]
+            for feature in feat_chain:
+                sys.stderr.write("Dispatching: %s%s\n" % (feature["name"], feature["parameters"]))
+                results.append(apply_async(
+                        pl,
+                        extract_features_and_compare,
+                        (config[package], feature, gtj, imj))
+                )
 
+    # Close the pool, and wait for all of the subprocesses to finish whatever they were doing
+    sys.stderr.write("Waiting for subprocesses to finish...\n")
+    pl.close()
+    pl.join()
+
+    # Get results now that processing has finished
+    results = list(itertools.chain(*[r.get() for r in results]))
+
+    # Pretty-print results
     print(json.dumps(results, indent=4))
 
-    # TODO: apply functions to image and analyse results
-    # TODO: write way of comparing computed features and ground truth
-    # TODO: logging or command-line output
-    # TODO: DRY
     # TODO: replace current file list with config file or something
-    # TODO: improve docs and commenting
-    # TODO: variable naming
-
-    #for i in range(0, len(features["ground_truth"])):
-    #    feature_type = features["ground_truth"][i]["type"]
-    #    print(feature_type)
-
-    #    for j in range(0, len(features["ground_truth"][i]["features"])):
-    #        ground_truth = features["ground_truth"][i]["features"][j]
-    #        image = features["images"][i]["features"][j]
-

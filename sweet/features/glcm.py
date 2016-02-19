@@ -1,9 +1,11 @@
+import numpy as np
+
 from skimage.feature import greycomatrix
 from skimage.feature import greycoprops
 
 
 def mean_squared_error(image_1, image_2):
-    return ((image_1 - image_2) ** 2).mean(axis=None)
+    return ((np.asarray(image_1) - np.asarray(image_2)) ** 2).mean(axis=None)
 
 
 def correlation(ground_truth, features):

@@ -17,15 +17,15 @@ features:
       description: gabor filter bank
       method: gabor_filter
       parameters:
-          - [0.1, 0.2, 0.3, 0.4, 0.5]     # parameter: "spatial_frequencies"
-          - [0, 45, 90, 135]              # parameter: "angles"
+          - [0.1, 0.2, 0.3, 0.4, 0.5]       # parameter: "spatial_frequencies"
+          - [0, 45, 90, 135]                # parameter: "angles"
 
     - name: glcm
       description: gray-level co-occurrence matrix
       method: glcm
       parameters:
-          - [[0, 1, 2, 3]]                # parameter: "dists"
-          - [[0, 45, 90, 135]]              # parameter: "angles"
+          - [[5]]                           # parameter: "dists"
+          - [[0]]                           # parameter: "angles"
 
 #   - lbp:
 #        name: local binary patterns
