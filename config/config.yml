@@ -24,15 +24,21 @@ features:
       description: gray-level co-occurrence matrix
       method: glcm
       parameters:
-          - [[5]]                           # parameter: "dists"
-          - [[0]]                           # parameter: "angles"
+          - [[1, 2, 3, 4, 5]]               # parameter: "dists"
+          - [[0, 90, 180, 270]]             # parameter: "angles"
 
-#   - lbp:
-#        name: local binary patterns
-#        parameters:
-#            - "{{ blergs }}"
-#            - "{{ blargs }}"
-#            - "{{ blimey }}"
+    - name: lbp
+      description: local binary patterns
+      method: lbp
+      parameters:
+          - [1, 3, 5, 8]                    # parameter: "num_points"
+          - [8, 24, 40, 100]                # parameter: "radius"
+          - ["uniform"]
+
+#    - name: lbp
+#      description: local binary patterns
+#      method: lbp
+#      parameters:
 
 # this defines the statistical tests used to evaluate each technique
 tests:
