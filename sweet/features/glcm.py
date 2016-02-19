@@ -2,8 +2,8 @@ from skimage.feature import greycomatrix
 from skimage.feature import greycoprops
 
 
-def squared_error(ground_truth, features):
-    raise Exception("Not implemented yet")
+def mean_squared_error(image_1, image_2):
+    return ((image_1 - image_2) ** 2).mean(axis=None)
 
 
 def correlation(ground_truth, features):
@@ -21,5 +21,4 @@ def glcm(image, angles, dists):
     Returns:
         A gray-level co-occurrence matrix.
     """
-    print(image.shape)
-    return greycomatrix(image, angles, dists, 256, symmetric=True, normed=True)
+    return greycomatrix(image, angles, dists, 256, symmetric=False, normed=False)

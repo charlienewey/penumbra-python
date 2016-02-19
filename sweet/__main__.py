@@ -1,11 +1,14 @@
 #! /usr/bin/env python2
 
+import copy
 import importlib
 import itertools
+import multiprocessing
 import os
 import sys
 
 import cv2
+import json
 import yaml
 
 
@@ -31,6 +34,20 @@ def read_config(path):
     with open(CONFIG_FILE) as conf_in:
         config = yaml.load(conf_in)
     return config
+
+
+def make_method(method, *args):
+    """
+    Create a higher-order partial function calling 'method' with the parameters '*args'. This has
+    the effect of creating a function that takes one parameter -- an image. This is used as part of
+    the processing pipeline.
+
+    This is used instead of lambda im: method(im, *args), because lambda functions are lazily
+    evaluated in Python, and that causes all sorts of headaches.
+    """
+    def new_method(image):
+        return method(image, *args)
+    return new_method
 
 
 if __name__ == "__main__":
@@ -62,18 +79,18 @@ if __name__ == "__main__":
     package = "preprocess"
     for stage in config[package]:
         # import module and fetch the specified method
-        module = ".".join((package, stage["name"]))
-        mod = importlib.import_module(module)
-        method = getattr(mod, stage["method"])
+        module_name = ".".join((package, stage["name"]))
+        module = importlib.import_module(module_name)
+        method = getattr(module, stage["method"])
 
         # fetch the parameters, generate all parameter possibilities and chuck them into a lambda
         # function so that you only need to call: "method(image)".
         if "parameters" in stage:
-            for args in itertools.product(*stage["parameters"]):
+            for parameters in itertools.product(*stage["parameters"]):
                 prep_chain.append({
                     "description": stage["description"],
-                    "method": lambda im: method(im, *args),
-                    "parameters": args
+                    "method": make_method(method, *parameters),
+                    "parameters": parameters
                 })
         else:
             prep_chain.append({
@@ -91,39 +108,55 @@ if __name__ == "__main__":
     package = "features"
     for stage in config[package]:
         # import module and fetch the specified method
-        module = ".".join((package, stage["name"]))
-        mod = importlib.import_module(module)
-        method = getattr(mod, stage["method"])
+        module_name = ".".join((package, stage["name"]))
+        module = importlib.import_module(module_name)
+        method = getattr(module, stage["method"])
 
         # fetch the parameters, generate all parameter possibilities and chuck them into a lambda
         # function so that you only need to call: "method(image)".
         if "parameters" in stage:
-            for args in itertools.product(*stage["parameters"]):
+            parameters = list()
+            for parameters in itertools.product(*stage["parameters"]):
                 feat_chain.append({
+                    "name": stage["name"],
                     "description": stage["description"],
-                    "method": lambda im: method(im, *args),
-                    "parameters": args
+                    "method": make_method(method, *parameters),
+                    "module": module,
+                    "parameters": parameters
                 })
         else:
             feat_chain.append({
+                "name": stage["name"],
                 "description": stage["description"],
-                "method": method
+                "method": method,
+                "module": module
             })
 
+    package = "tests"
+    results = []
     for i in range(0, len(ground_truths)):
-        # apply preprocessing
+        # apply preprocessing chain to images
         gt = ground_truths[i]["img"]
         im = images[i]["img"]
         for link in prep_chain:
             gt = link["method"](gt)
             im = link["method"](im)
 
+        # extract features and compare ground truth
         for feature in feat_chain:
-            # import modules and fetch the specified methods
-            for stage in config[package]:
-                module = ".".join((package, stage["name"]))
-                mod = importlib.import_module(module)
-                method = getattr(mod, stage["method"])
+            feat_gt = feature["method"](gt)
+            feat_im = feature["method"](im)
+            for test in config[package]:
+                test_method = getattr(feature["module"], test["name"])
+                result = {
+                    "name": feature["name"],
+                    "description": feature["description"],
+                    test["name"]: test_method(feat_gt, feat_im),
+                    "parameters": feature["parameters"]
+                }
+                results.append(result)
+
+    print(json.dumps(results, indent=4))
 
     # TODO: apply functions to image and analyse results
     # TODO: write way of comparing computed features and ground truth
@@ -141,5 +174,3 @@ if __name__ == "__main__":
     #        ground_truth = features["ground_truth"][i]["features"][j]
     #        image = features["images"][i]["features"][j]
 
-    #        mse = ((ground_truth["image_features"] - image["image_features"]) ** 2).mean(axis=None)
-    #        print("frequency: %s, angle: %s = error: %f" % (image["parameters"][0], image["parameters"][1], mse))

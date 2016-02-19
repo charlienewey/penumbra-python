@@ -36,7 +36,8 @@ features:
 
 # this defines the statistical tests used to evaluate each technique
 tests:
-    - mean_squared_error
+    - name: mean_squared_error
+      method: mean_squared_error
 
 ## the input data, with associated ground truth.
 #input:
