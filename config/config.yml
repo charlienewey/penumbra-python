@@ -35,10 +35,13 @@ features:
           - [8, 24, 40, 100]                # parameter: "radius"
           - ["uniform"]
 
-#    - name: lbp
-#      description: local binary patterns
-#      method: lbp
-#      parameters:
+    - name: lbp
+      description: local binary patterns
+      method: lbp
+      parameters:
+          - [1, 3, 5, 8]                    # parameter: "num_points"
+          - [8, 24, 40, 100]                # parameter: "radius"
+
 
 # this defines the statistical tests used to evaluate each technique
 tests:
