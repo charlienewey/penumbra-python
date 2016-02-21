@@ -4,12 +4,15 @@ from skimage.feature import greycomatrix
 from skimage.feature import greycoprops
 
 
+def variance_difference(image_1, image_2):
+    var_1 = greycoprops(image_1, prop="contrast")
+    var_2 = greycoprops(image_2, prop="contrast")
+    v = np.sqrt((np.ravel(var_1) - np.ravel(var_2)) ** 2)
+    return sum(v) / len(v)
+
+
 def mean_squared_error(image_1, image_2):
     return ((np.asarray(image_1) - np.asarray(image_2)) ** 2).mean(axis=None)
-
-
-def correlation(ground_truth, features):
-    raise Exception("Not implemented yet")
 
 
 def glcm(image, angles, dists):
@@ -23,4 +26,4 @@ def glcm(image, angles, dists):
     Returns:
         A gray-level co-occurrence matrix.
     """
-    return greycomatrix(image, angles, dists, 256, symmetric=False, normed=False)
+    return greycomatrix(image, angles, dists, 256, symmetric=True, normed=True)

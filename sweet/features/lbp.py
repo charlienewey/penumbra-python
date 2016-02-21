@@ -1,6 +1,12 @@
+import math
+
 import numpy as np
 
 from skimage.feature import local_binary_pattern
+
+
+def variance_difference(image_1, image_2):
+    return math.sqrt((image_1.var() - image_2.var()) ** 2)
 
 
 def mean_squared_error(image_1, image_2):
