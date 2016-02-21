@@ -77,17 +77,18 @@ def extract_features_and_compare(package, feature, ground_truth, image):
     feat_gt = feature["method"](ground_truth)
     feat_im = feature["method"](image)
 
-    results = []
+    result = {
+        "name": feature["name"],
+        "description": feature["description"],
+        "parameters": feature["parameters"]
+    }
+
     for test in package:
         test_method = getattr(feature["module"], test["name"])
-        result = {
-            "name": feature["name"],
-            "description": feature["description"],
-            test["name"]: test_method(feat_gt, feat_im),
-            "parameters": feature["parameters"]
-        }
-        results.append(result)
-    return results
+        r_upd = {test["name"]: test_method(feat_gt, feat_im)}
+        result.update(r_upd)
+
+    return result
 
 
 def construct_function_list(config, package):
@@ -176,10 +177,10 @@ if __name__ == "__main__":
             for feature in feat_chain:
                 sys.stderr.write("Dispatching: %s%s\n" % (feature["name"], feature["parameters"]))
                 results.append(apply_async(
-                        pl,
-                        extract_features_and_compare,
-                        (config[package], feature, gtj, imj))
-                )
+                    pl,
+                    extract_features_and_compare,
+                    (config[package], feature, gtj, imj)
+                ))
 
     # Close the pool, and wait for all of the subprocesses to finish whatever they were doing
     sys.stderr.write("Waiting for subprocesses to finish...\n")
@@ -187,7 +188,7 @@ if __name__ == "__main__":
     pl.join()
 
     # Get results now that processing has finished
-    results = list(itertools.chain(*[r.get() for r in results]))
+    results = [r.get() for r in results]
 
     # Pretty-print results
     print(json.dumps(results, indent=4))
