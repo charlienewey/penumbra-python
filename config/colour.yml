@@ -1,0 +1,28 @@
+preprocess: {}
+#    - name: hsv
+#      desc: hsvify
+
+#    - name: patchify
+#      desc: subsample/patchify
+#      parameters:
+#          - (100, 200)
+#          - (200, 200)
+
+features:
+    - name: haralick
+      description: haralick features
+      method: haralick
+
+# this defines the statistical tests used to evaluate each technique
+tests:
+    - name: mean_squared_error
+      method: mean_squared_error
+    - name: variance_difference
+      method: variance_difference
+
+# the input data, with associated ground truth.
+input:
+    ground_truths:
+        - ../data/bricks-1/data/bricks-1-no-shadow-1.png
+    images:
+        - ../data/bricks-1/data/bricks-1-shadow-2.png

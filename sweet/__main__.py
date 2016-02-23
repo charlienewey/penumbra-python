@@ -187,7 +187,6 @@ if __name__ == "__main__":
 
         # extract features and compare ground truth
         for j in range(0, len(gt)):
-            print(j)
             gtj = gt[j]
             imj = im[j]
             for feature in feat_chain:
