@@ -8,9 +8,9 @@ import multiprocessing
 import os
 import sys
 
+import cv2
 import dill
 import json
-import skimage.io
 import yaml
 
 
@@ -42,13 +42,15 @@ def read_config(path):
 
 
 def gen_file_list(ls):
-    for file_glob in ls:
-        f_list = glob.glob(os.path.abspath(file_glob))
+    file_list = []
+    for _glob in ls:
+        f_list = glob.glob(os.path.abspath(_glob))
         if len(f_list) > 0:
             for path in f_list:
-                yield path
+                file_list.extend(f_list)
         else:
-            yield os.path.abspath(file_glob)
+            file_list.append(_glob)
+    return file_list
 
 
 def make_method(method, *args):
@@ -165,8 +167,8 @@ if __name__ == "__main__":
     file_list = read_config(FILE_LIST)
 
     # Get input file list and make sure everything's hunky-dory
-    ground_truths = list(gen_file_list(file_list["input"]["ground_truths"]))
-    images = list(gen_file_list(file_list["input"]["images"]))
+    ground_truths = gen_file_list(file_list["input"]["ground_truths"])
+    images = gen_file_list(file_list["input"]["images"])
     assert len(ground_truths) == len(images)
 
     # Create the function chains for image preprocessing and feature extraction
@@ -181,8 +183,8 @@ if __name__ == "__main__":
     package = "tests"
     for i in range(0, len(ground_truths)):
         # apply preprocessing chain to images
-        gt = skimage.io.imread(ground_truths[i])
-        im = skimage.io.imread(images[i])
+        gt = [cv2.imread(ground_truths[i])]
+        im = [cv2.imread(images[i])]
         for link in prep_chain:
             gt = link["method"](gt)
             im = link["method"](im)
@@ -198,11 +200,13 @@ if __name__ == "__main__":
                 else:
                     sys.stderr.write("Dispatching: %s()\n" % (feature["name"]))
 
-                results.append(apply_async(
-                    pl,
-                    extract_features_and_compare,
-                    (config[package], feature, gtj, imj)
-                ))
+                results.append(
+                    apply_async(
+                        pl,
+                        extract_features_and_compare,
+                        (config[package], feature, gtj, imj)
+                    )
+                )
 
 
     # Close the pool, and wait for all of the subprocesses to finish whatever they were doing
