@@ -1,0 +1,35 @@
+preprocess:
+    - name: grayscale
+      description: grayscalify
+      method: to_grayscale
+
+#    - name: hsv
+#      desc: hsvify
+
+#    - name: patchify
+#      desc: subsample/patchify
+#      parameters:
+#          - (100, 200)
+#          - (200, 200)
+
+features:
+    - name: glcm
+      description: gray-level co-occurrence matrix
+      method: glcm
+      parameters:
+          - [[1], [1, 2], [1, 2, 3, 4, 5]]  # parameter: "dists"
+          - [[0, 90, 180, 270]]             # parameter: "angles"
+
+# this defines the statistical tests used to evaluate each technique
+tests:
+    - name: mean_squared_error
+      method: mean_squared_error
+    - name: variance_difference
+      method: variance_difference
+
+# the input data, with associated ground truth.
+input:
+    ground_truths:
+        - ../data/bricks-1/data/bricks-1-no-shadow-1.png
+    images:
+        - ../data/bricks-1/data/bricks-1-shadow-2.png
