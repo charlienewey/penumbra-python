@@ -20,21 +20,6 @@ features:
           - [0.1, 0.2, 0.3, 0.4, 0.5]       # parameter: "spatial_frequencies"
           - [0, 45, 90, 135]                # parameter: "angles"
 
-    - name: glcm
-      description: gray-level co-occurrence matrix
-      method: glcm
-      parameters:
-          - [[1], [1, 2], [1, 2, 3, 4, 5]]               # parameter: "dists"
-          - [[0, 90, 180, 270]]             # parameter: "angles"
-
-    - name: lbp
-      description: local binary patterns
-      method: lbp
-      parameters:
-          - [1, 3, 5, 8]                    # parameter: "num_points"
-          - [8, 24, 40, 100]                # parameter: "radius"
-          - ["uniform"]
-
 # this defines the statistical tests used to evaluate each technique
 tests:
     - name: mean_squared_error
@@ -42,9 +27,7 @@ tests:
     - name: variance_difference
       method: variance_difference
 
-# the input data, with associated ground truth.
-input:
-    ground_truths:
-        - ../data/bricks-1/data/bricks-1-no-shadow-1.png
-    images:
-        - ../data/bricks-1/data/bricks-1-shadow-2.png
+sort:
+    keys:
+        - mean_squared_error
+        - variance_difference

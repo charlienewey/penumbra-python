@@ -27,9 +27,7 @@ tests:
     - name: variance_difference
       method: variance_difference
 
-# the input data, with associated ground truth.
-input:
-    ground_truths:
-        - ../data/bricks-1/data/bricks-1-no-shadow-1.png
-    images:
-        - ../data/bricks-1/data/bricks-1-shadow-2.png
+sort:
+    keys:
+        - mean_squared_error
+        - variance_difference

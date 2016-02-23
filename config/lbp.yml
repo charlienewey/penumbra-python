@@ -17,32 +17,32 @@ features:
       description: local binary patterns
       method: lbp
       parameters:
-          - [1, 3, 5, 8]                    # parameter: "num_points"
-          - [8, 24, 40, 100]                # parameter: "radius"
+          - [12, 20, 24]                    # parameter: "num_points"
+          - [1, 2, 3, 4, 5]                 # parameter: "radius"
           - ["default"]                     # parameter: "method"
 
     - name: lbp
       description: rotation-invariant local binary patterns
       method: lbp
       parameters:
-          - [1, 3, 5, 8]                    # parameter: "num_points"
-          - [8, 24, 40, 100]                # parameter: "radius"
+          - [12, 20, 24]                    # parameter: "num_points"
+          - [1, 2, 3, 4, 5]                 # parameter: "radius"
           - ["ror"]                         # parameter: "method"
 
     - name: lbp
       description: uniform, rotation-invariant local binary patterns
       method: lbp
       parameters:
-          - [1, 3, 5, 8]                    # parameter: "num_points"
-          - [8, 24, 40, 100]                # parameter: "radius"
+          - [12, 20, 24]                    # parameter: "num_points"
+          - [1, 2, 3, 4, 5]                 # parameter: "radius"
           - ["uniform"]                     # parameter: "method"
 
     - name: lbp
       description: uniform, non-rotation-invariant local binary patterns
       method: lbp
       parameters:
-          - [1, 3, 5, 8]                    # parameter: "num_points"
-          - [8, 24, 40, 100]                # parameter: "radius"
+          - [12, 20, 24]                    # parameter: "num_points"
+          - [1, 2, 3, 4, 5]                 # parameter: "radius"
           - ["nri_uniform"]                 # parameter: "method"
 
 
@@ -53,9 +53,7 @@ tests:
     - name: variance_difference
       method: variance_difference
 
-# the input data, with associated ground truth.
-input:
-    ground_truths:
-        - ../data/bricks-1/data/bricks-1-no-shadow-1.png
-    images:
-        - ../data/bricks-1/data/bricks-1-shadow-2.png
+sort:
+    keys:
+        - mean_squared_error
+        - variance_difference

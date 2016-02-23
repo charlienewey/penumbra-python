@@ -10,7 +10,7 @@ def variance_difference(image_1, image_2):
 
 
 def mean_squared_error(image_1, image_2):
-    return ((np.asarray(image_1) - np.asarray(image_2)) ** 2).mean(axis=None)
+    return np.sqrt(np.power((image_1 - image_2), 2)).mean(axis=None)
 
 
 def lbp(image, num_points, radius, method):

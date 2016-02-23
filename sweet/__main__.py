@@ -8,9 +8,9 @@ import multiprocessing
 import os
 import sys
 
-import cv2
 import dill
 import json
+import skimage.io
 import yaml
 
 
@@ -36,7 +36,7 @@ def read_config(path):
     """
     Read a YAML config file into a data structure and return it. Does what it says on the tin.
     """
-    with open(CONFIG_FILE) as conf_in:
+    with open(path) as conf_in:
         config = yaml.load(conf_in)
     return config
 
@@ -94,7 +94,7 @@ def extract_features_and_compare(package, feature, ground_truth, image):
     }
 
     if "parameters" in feature:
-        features.update({"parameters": feature["parameters"]})
+        result.update({"parameters": feature["parameters"]})
 
     for test in package:
         test_method = getattr(feature["module"], test["name"])
@@ -149,21 +149,24 @@ def construct_function_list(config, package):
 
 if __name__ == "__main__":
     # Set constants here - will later replace with command-line opts
-    if len(sys.argv) < 2:
-        CONFIG_FILE = os.path.join(os.getcwd(), "config/config.yml")
+    if len(sys.argv) < 3:
+        CONFIG_FILES = os.path.join(os.getcwd(), "config/config.yml")
+        FILE_LIST = os.path.join(os.getcwd(), "config/files.yml")
     else:
-        CONFIG_FILE = os.path.abspath(sys.argv[1])
+        CONFIG_FILES = os.path.abspath(sys.argv[1])
+        FILE_LIST = os.path.abspath(sys.argv[2])
 
     # Append current directory to system path
     cur_dir = os.path.dirname(__file__)
     sys.path.append(cur_dir)
 
     # Get configuration
-    config = read_config(CONFIG_FILE)
+    config = read_config(CONFIG_FILES)
+    file_list = read_config(FILE_LIST)
 
     # Get input file list and make sure everything's hunky-dory
-    ground_truths = list(gen_file_list(config["input"]["ground_truths"]))
-    images = list(gen_file_list(config["input"]["images"]))
+    ground_truths = list(gen_file_list(file_list["input"]["ground_truths"]))
+    images = list(gen_file_list(file_list["input"]["images"]))
     assert len(ground_truths) == len(images)
 
     # Create the function chains for image preprocessing and feature extraction
@@ -178,8 +181,8 @@ if __name__ == "__main__":
     package = "tests"
     for i in range(0, len(ground_truths)):
         # apply preprocessing chain to images
-        gt = [cv2.imread(ground_truths[i])]
-        im = [cv2.imread(images[i])]
+        gt = skimage.io.imread(ground_truths[i])
+        im = skimage.io.imread(images[i])
         for link in prep_chain:
             gt = link["method"](gt)
             im = link["method"](im)
@@ -201,13 +204,15 @@ if __name__ == "__main__":
                     (config[package], feature, gtj, imj)
                 ))
 
+
     # Close the pool, and wait for all of the subprocesses to finish whatever they were doing
     sys.stderr.write("Waiting for subprocesses to finish...\n")
     pl.close()
     pl.join()
 
     # Get results now that processing has finished
-    results = [r.get() for r in results]
+    sort_keys = config["sort"]["keys"]  # sort by keys specified in config file
+    results = sorted([r.get() for r in results], key=lambda x: [x[s_key] for s_key in sort_keys])
 
     # Pretty-print results
     print(json.dumps(results, indent=4))
