@@ -1,6 +1,7 @@
 #! /usr/bin/env python2
 
 import copy
+import glob
 import importlib
 import itertools
 import multiprocessing
@@ -38,6 +39,16 @@ def read_config(path):
     with open(CONFIG_FILE) as conf_in:
         config = yaml.load(conf_in)
     return config
+
+
+def gen_file_list(ls):
+    for file_glob in ls:
+        f_list = glob.glob(os.path.abspath(file_glob))
+        if len(f_list) > 0:
+            for path in f_list:
+                yield path
+        else:
+            yield os.path.abspath(file_glob)
 
 
 def make_method(method, *args):
@@ -80,8 +91,10 @@ def extract_features_and_compare(package, feature, ground_truth, image):
     result = {
         "name": feature["name"],
         "description": feature["description"],
-        "parameters": feature["parameters"]
     }
+
+    if "parameters" in feature:
+        features.update({"parameters": feature["parameters"]})
 
     for test in package:
         test_method = getattr(feature["module"], test["name"])
@@ -136,7 +149,10 @@ def construct_function_list(config, package):
 
 if __name__ == "__main__":
     # Set constants here - will later replace with command-line opts
-    CONFIG_FILE = os.path.join(os.getcwd(), "config/config.yml")
+    if len(sys.argv) < 2:
+        CONFIG_FILE = os.path.join(os.getcwd(), "config/config.yml")
+    else:
+        CONFIG_FILE = os.path.abspath(sys.argv[1])
 
     # Append current directory to system path
     cur_dir = os.path.dirname(__file__)
@@ -145,10 +161,9 @@ if __name__ == "__main__":
     # Get configuration
     config = read_config(CONFIG_FILE)
 
-    # Read input files and make sure everything's hunky-dory
-    # TODO: replace this with something a bit more sensible (list of files, etc)
-    ground_truths = [cv2.imread(sys.argv[1], cv2.IMREAD_COLOR)]
-    images = [cv2.imread(sys.argv[2], cv2.IMREAD_COLOR)]
+    # Get input file list and make sure everything's hunky-dory
+    ground_truths = list(gen_file_list(config["input"]["ground_truths"]))
+    images = list(gen_file_list(config["input"]["images"]))
     assert len(ground_truths) == len(images)
 
     # Create the function chains for image preprocessing and feature extraction
@@ -163,8 +178,8 @@ if __name__ == "__main__":
     package = "tests"
     for i in range(0, len(ground_truths)):
         # apply preprocessing chain to images
-        gt = ground_truths[i]
-        im = images[i]
+        gt = [cv2.imread(ground_truths[i])]
+        im = [cv2.imread(images[i])]
         for link in prep_chain:
             gt = link["method"](gt)
             im = link["method"](im)
@@ -172,10 +187,15 @@ if __name__ == "__main__":
 
         # extract features and compare ground truth
         for j in range(0, len(gt)):
+            print(j)
             gtj = gt[j]
             imj = im[j]
             for feature in feat_chain:
-                sys.stderr.write("Dispatching: %s%s\n" % (feature["name"], feature["parameters"]))
+                if "parameters" in feature:
+                    sys.stderr.write("Dispatching: %s%s\n" % (feature["name"], feature["parameters"]))
+                else:
+                    sys.stderr.write("Dispatching: %s()\n" % (feature["name"]))
+
                 results.append(apply_async(
                     pl,
                     extract_features_and_compare,
@@ -192,5 +212,3 @@ if __name__ == "__main__":
 
     # Pretty-print results
     print(json.dumps(results, indent=4))
-
-    # TODO: replace current file list with config file or something

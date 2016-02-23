@@ -35,14 +35,6 @@ features:
           - [8, 24, 40, 100]                # parameter: "radius"
           - ["uniform"]
 
-    - name: lbp
-      description: local binary patterns
-      method: lbp
-      parameters:
-          - [1, 3, 5, 8]                    # parameter: "num_points"
-          - [8, 24, 40, 100]                # parameter: "radius"
-
-
 # this defines the statistical tests used to evaluate each technique
 tests:
     - name: mean_squared_error
@@ -50,8 +42,9 @@ tests:
     - name: variance_difference
       method: variance_difference
 
-## the input data, with associated ground truth.
-#input:
-#    my_dataset:
-#        ground_truth: /path/to/my_dataset/ground_truth
-#        data: /path/to/my_dataset/data
+# the input data, with associated ground truth.
+input:
+    ground_truths:
+        - ../data/bricks-1/data/bricks-1-no-shadow-1.png
+    images:
+        - ../data/bricks-1/data/bricks-1-shadow-2.png
