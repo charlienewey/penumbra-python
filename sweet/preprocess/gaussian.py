@@ -1,4 +1,4 @@
-from skimage.filters import gaussian
+from skimage.filters import gaussian as _gaussian
 
 def gaussian(imgs, sigma=8):
-    return [gaussian(img, sigma=sigma) for img in imgs]
+    return [_gaussian(img, sigma=sigma) for img in imgs]
