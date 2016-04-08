@@ -86,7 +86,7 @@ def apply_async(pool, fun, args):
     return pool.apply_async(run_dill_encoded, (dill.dumps((fun, args)),))
 
 
-def extract_features_and_compare(package, feature, clustering, shadow_seg, ground_truth, image):
+def extract_features_and_compare(feature, clustering, shadow_seg, ground_truth, image, tests):
     feat_im = feature["method"](image)
     clus_im = clustering["method"](feat_im)
     shadow = shadow_seg["method"](image, clus_im)
@@ -103,20 +103,22 @@ def extract_features_and_compare(package, feature, clustering, shadow_seg, groun
         "shadow_seg": {
             "name": shadow_seg["name"],
             "description": shadow_seg["description"]
-        }
+        },
+        "results": {}
     }
 
     if "parameters" in feature:
-        result.update({"parameters": feature["parameters"]})
+        result["features"].update({"parameters": feature["parameters"]})
     if "parameters" in clustering:
-        result.update({"parameters": clustering["parameters"]})
+        result["clustering"].update({"parameters": clustering["parameters"]})
     if "parameters" in shadow_seg:
-        result.update({"parameters": shadow_seg["parameters"]})
+        result["shadow_seg"].update({"parameters": shadow_seg["parameters"]})
 
-    for test in package:
-        test_method = getattr(feature["module"], test["name"])
-        r_upd = {test["name"]: test_method(ground_truth, feat_im)}
-        result.update(r_upd)
+    for test in tests:
+        test_method = test["method"]
+        name = ".".join([test["name"], test["method"].__name__])
+        r_upd = {name: test_method(ground_truth, shadow)}
+        result["results"].update(r_upd)
 
     return result
 
@@ -191,14 +193,18 @@ if __name__ == "__main__":
     feat_chain = construct_function_list(config, "features")
     cluster_chain = construct_function_list(config, "cluster")
     shadow_chain = construct_function_list(config, "shadow")
+    testing_chain = construct_function_list(config, "metrics")
 
     # Here the function chains in prep_chain and feat_chain are applied. Each function in the
     # preprocessing chain is applied to each image in series, and the preprocessed images are then
     # run through each feature extraction algorithm individually. These results are then tested.
-    results = []
+    results = {}
     pl = multiprocessing.Pool(multiprocessing.cpu_count() - 1)
     package = "tests"
     for i in range(0, len(ground_truths)):
+        # create result array
+        results[images[i]] = []
+
         # read images
         gt = imread(ground_truths[i], as_grey=True)
         im = imread(images[i])
@@ -217,14 +223,13 @@ if __name__ == "__main__":
                     else:
                         sys.stderr.write("Dispatching: %s()\n" % (feature["name"]))
 
-                    results.append(
+                    results[images[i]].append(
                         apply_async(
-                            pl, extract_features_and_compare,
-                            (config[package], feature, clustering, shadow_seg, gt, im)
+                            pl,
+                            extract_features_and_compare,
+                            (feature, clustering, shadow_seg, gt, im, testing_chain)
                         )
                     )
-
-        #_imshow(gt, im)
 
     # Close the pool, and wait for all of the subprocesses to finish whatever they were doing
     sys.stderr.write("Waiting for subprocesses to finish...\n")
@@ -232,8 +237,15 @@ if __name__ == "__main__":
     pl.join()
 
     # Get results now that processing has finished
-    sort_keys = config["sort"]["keys"]
-    results = sorted([r.get() for r in results], key=lambda x: [x[s_key] for s_key in sort_keys])
+    n_combinations = len(results[results.keys()[0]])
+    for i in range(0, n_combinations):
+        for k, v in results.items():
+            results[k] = [r.get() for r in v]
+
+    #results = sorted([r.get() for r in results], key=lambda x: [x[s_key] for s_key in sort_keys])
+
+    # Combine and sort results
+    #sort_keys = config["sort"]["keys"]
 
     # Pretty-print results
     print(json.dumps(results, indent=4))

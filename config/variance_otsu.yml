@@ -1,17 +1,17 @@
 # preprocessing stages for input images
 preprocess:
     - name: grayscale
-      description: converts the image to greyscale
+      description: "converts the image to greyscale"
       method: to_grayscale
 
     - name: gaussian
-      description: applies a gaussian blur kernel to the image
+      description: "applies a gaussian blur kernel to the image"
       method: gaussian
       parameters:
           - [8]         # blur radius
 
     - name: local_max
-      description: takes the local maxima over a specified neighbourhood
+      description: "takes the local maxima over a specified neighbourhood"
       method: local_max
       parameters:
           - [3]         # neighbourhood
@@ -20,10 +20,10 @@ preprocess:
 # feature extraction
 features:
     - name: lbp
-      description: local binary patterns
+      description: "local binary patterns"
       method: lbp
       parameters:
-          - [10]        # num_points
+          - [10]        # number of points to sample
           - [5]         # radius
           - ["uniform"] # method
 
@@ -31,7 +31,7 @@ features:
 # feature clustering
 cluster:
     - name: kmeans
-      description: k-means clustering
+      description: "k-means clustering"
       method: cluster_to_labels
       parameters:
           - [8]         # n_clusters
@@ -40,21 +40,30 @@ cluster:
 # where the magic happens
 shadow:
     - name: colour
-      description: using variance and otsu thresholds to segment shadow
+      description: "using variance and otsu thresholds to segment shadow"
       method: variance_otsu
 
 
 # the tests used to evaluate each technique
-tests:
-    - name: true_positive_rate
-      method: tpr
-    - name: true_negative_rate
-      method: tnr
-    - name: false_positive_rate
-      method: fpr
-    - name: false_negative_rate
-      method: fnr
+metrics:
+    - name: binary_classification
+      description: "true positive rate"
+      method: true_positive_rate
 
+    - name: binary_classification
+      description: "true negative rate"
+      method: true_negative_rate
+
+    - name: binary_classification
+      description: "false positive rate"
+      method: false_positive_rate
+
+    - name: binary_classification
+      description: "false negative rate"
+      method: false_negative_rate
+
+
+# sort results
 sort:
     keys:
         - true_positive_rate
