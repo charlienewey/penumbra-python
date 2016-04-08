@@ -1,0 +1,61 @@
+# preprocessing stages for input images
+preprocess:
+    - name: grayscale
+      description: converts the image to greyscale
+      method: to_grayscale
+
+    - name: gaussian
+      description: applies a gaussian blur kernel to the image
+      method: gaussian
+      parameters:
+          - [8]         # blur radius
+
+    - name: local_max
+      description: takes the local maxima over a specified neighbourhood
+      method: local_max
+      parameters:
+          - [3]         # neighbourhood
+
+
+# feature extraction
+features:
+    - name: lbp
+      description: local binary patterns
+      method: lbp
+      parameters:
+          - [10]        # num_points
+          - [5]         # radius
+          - ["uniform"] # method
+
+
+# feature clustering
+cluster:
+    - name: kmeans
+      description: k-means clustering
+      method: cluster_to_labels
+      parameters:
+          - [8]         # n_clusters
+
+
+# where the magic happens
+shadow:
+    - name: colour
+      description: using variance and otsu thresholds to segment shadow
+      method: variance_otsu
+
+
+# the tests used to evaluate each technique
+tests:
+    - name: true_positive_rate
+      method: tpr
+    - name: true_negative_rate
+      method: tnr
+    - name: false_positive_rate
+      method: fpr
+    - name: false_negative_rate
+      method: fnr
+
+sort:
+    keys:
+        - true_positive_rate
+        - true_negative_rate
