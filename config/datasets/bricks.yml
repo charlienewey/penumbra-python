@@ -1,6 +1,5 @@
-# the input data, with associated ground truth.
 input:
     ground_truths:
-        - ../data/bricks-1/data/bricks-1-no-shadow-1.png
+        - ../data/static/lo-res/bricks/ground-truth/small-00026.png
     images:
-        - ../data/bricks-1/data/bricks-1-shadow-2.png
+        - ../data/static/lo-res/bricks/images/small-00026.png

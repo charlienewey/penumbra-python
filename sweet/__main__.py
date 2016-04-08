@@ -8,27 +8,27 @@ import multiprocessing
 import os
 import sys
 
-import cv2
 import dill
 import json
 import yaml
 
+from skimage.io import imread
 
-def imshow(*images):
-    """
-    Display an image in a window. Mostly used for debugging at the moment.
-    """
-    import matplotlib.pyplot as plt
 
-    # create the figure
-    fig = plt.figure(figsize=(8, 8))
+def _imshow(*images):
+    from matplotlib import pyplot as plt
 
+    fig = plt.figure()
     for i in range(0, len(images)):
-        # display original image with locations of patchea
-        ax = fig.add_subplot(len(images), 1, i + 1)
-        ax.imshow(images[i], cmap=plt.cm.gray, interpolation="nearest", vmin=0, vmax=255)
+        im = images[i]
+        if im.shape[0] > im.shape[1]:
+            ax = fig.add_subplot(1, len(images), i + 1)
+        else:
+            ax = fig.add_subplot(len(images), 1, i + 1)
 
-    # display the patches and plot
+        cax = ax.imshow(im, cmap=plt.cm.cubehelix)
+        fig.colorbar(cax)
+
     plt.show()
 
 
@@ -86,21 +86,36 @@ def apply_async(pool, fun, args):
     return pool.apply_async(run_dill_encoded, (dill.dumps((fun, args)),))
 
 
-def extract_features_and_compare(package, feature, ground_truth, image):
-    feat_gt = feature["method"](ground_truth)
+def extract_features_and_compare(package, feature, clustering, shadow_seg, ground_truth, image):
     feat_im = feature["method"](image)
+    clus_im = clustering["method"](feat_im)
+    shadow = shadow_seg["method"](image, clus_im)
 
     result = {
-        "name": feature["name"],
-        "description": feature["description"],
+        "features": {
+            "name": feature["name"],
+            "description": feature["description"]
+        },
+        "clustering": {
+            "name": clustering["name"],
+            "description": clustering["description"]
+        },
+        "shadow_seg": {
+            "name": shadow_seg["name"],
+            "description": shadow_seg["description"]
+        }
     }
 
     if "parameters" in feature:
         result.update({"parameters": feature["parameters"]})
+    if "parameters" in clustering:
+        result.update({"parameters": clustering["parameters"]})
+    if "parameters" in shadow_seg:
+        result.update({"parameters": shadow_seg["parameters"]})
 
     for test in package:
         test_method = getattr(feature["module"], test["name"])
-        r_upd = {test["name"]: test_method(feat_gt, feat_im)}
+        r_upd = {test["name"]: test_method(ground_truth, feat_im)}
         result.update(r_upd)
 
     return result
@@ -174,6 +189,8 @@ if __name__ == "__main__":
     # Create the function chains for image preprocessing and feature extraction
     prep_chain = construct_function_list(config, "preprocess")
     feat_chain = construct_function_list(config, "features")
+    cluster_chain = construct_function_list(config, "cluster")
+    shadow_chain = construct_function_list(config, "shadow")
 
     # Here the function chains in prep_chain and feat_chain are applied. Each function in the
     # preprocessing chain is applied to each image in series, and the preprocessed images are then
@@ -182,32 +199,32 @@ if __name__ == "__main__":
     pl = multiprocessing.Pool(multiprocessing.cpu_count() - 1)
     package = "tests"
     for i in range(0, len(ground_truths)):
+        # read images
+        gt = imread(ground_truths[i], as_grey=True)
+        im = imread(images[i])
+
         # apply preprocessing chain to images
-        gt = [cv2.imread(ground_truths[i])]
-        im = [cv2.imread(images[i])]
         for link in prep_chain:
-            gt = link["method"](gt)
             im = link["method"](im)
         assert len(gt) == len(im)
 
         # extract features and compare ground truth
-        for j in range(0, len(gt)):
-            gtj = gt[j]
-            imj = im[j]
-            for feature in feat_chain:
-                if "parameters" in feature:
-                    sys.stderr.write("Dispatching: %s%s\n" % (feature["name"], feature["parameters"]))
-                else:
-                    sys.stderr.write("Dispatching: %s()\n" % (feature["name"]))
+        for feature in feat_chain:
+            for clustering in cluster_chain:
+                for shadow_seg in shadow_chain:
+                    if "parameters" in feature:
+                        sys.stderr.write("Dispatching: %s%s\n" % (feature["name"], feature["parameters"]))
+                    else:
+                        sys.stderr.write("Dispatching: %s()\n" % (feature["name"]))
 
-                results.append(
-                    apply_async(
-                        pl,
-                        extract_features_and_compare,
-                        (config[package], feature, gtj, imj)
+                    results.append(
+                        apply_async(
+                            pl, extract_features_and_compare,
+                            (config[package], feature, clustering, shadow_seg, gt, im)
+                        )
                     )
-                )
 
+        #_imshow(gt, im)
 
     # Close the pool, and wait for all of the subprocesses to finish whatever they were doing
     sys.stderr.write("Waiting for subprocesses to finish...\n")
@@ -215,7 +232,7 @@ if __name__ == "__main__":
     pl.join()
 
     # Get results now that processing has finished
-    sort_keys = config["sort"]["keys"]  # sort by keys specified in config file
+    sort_keys = config["sort"]["keys"]
     results = sorted([r.get() for r in results], key=lambda x: [x[s_key] for s_key in sort_keys])
 
     # Pretty-print results
