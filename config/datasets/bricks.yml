@@ -1,7 +1,5 @@
 input:
     ground_truths:
-        - ../data/static/lo-res/bricks/ground-truth/small-00026.png
-        - ../data/static/lo-res/bricks/ground-truth/small-00028.png
+        - ../data/static/lo-res/bricks/ground-truth/small-*.png
     images:
-        - ../data/static/lo-res/bricks/images/small-00026.png
-        - ../data/static/lo-res/bricks/images/small-00028.png
+        - ../data/static/lo-res/bricks/images/small-*.png
