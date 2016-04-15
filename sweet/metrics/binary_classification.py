@@ -4,8 +4,9 @@ def _true_rate(ground_truth, prediction, target_value):
     gt_target = ground_truth == target_value
     gt_num_target = np.count_nonzero(gt_target)
 
+    # If there are no members of this class...
     if gt_num_target == 0:
-        return 0.0
+        return 1.0
 
     pred_true_target = prediction[gt_target] == target_value
     pred_num_true_target = np.count_nonzero(pred_true_target)
