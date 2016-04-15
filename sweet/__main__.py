@@ -241,7 +241,7 @@ if __name__ == "__main__":
             fetched_output_list.append(result.get())
         combination["results"] = fetched_output_list
 
-    # Reduce the list of dictionaries into a single, averaged dictionary
+    # Reduce the list of dictionaries into a single dictionary
     for combination in output:
         results = {}
         for result in combination["results"]:
@@ -250,9 +250,28 @@ if __name__ == "__main__":
                     results[test] += value
                 else:
                     results[test] = value
-        for key, value in results.items():
-            results[key] = value / len(combination["results"])
+
+        # this section is a bit hacky, just calculates rates from the results
+        tp = float(results["binary_classification.true_positives"])
+        tn = float(results["binary_classification.true_negatives"])
+        fp = float(results["binary_classification.false_positives"])
+        fn = float(results["binary_classification.false_negatives"])
+
+        tpr = tp / (tp + fn)
+        fpr = fp / (fp + tn)
+        tnr = tn / (tn + fp)
+        fnr = fn / (fn + tp)
+
+        results = {}
+
+        results["tpr"] = tpr
+        results["fpr"] = fpr
+        results["tnr"] = tnr
+        results["fnr"] = fnr
+
         combination["results"] = results
+
+    output = sorted(output, key=lambda x: x["results"]["tpr"] + x["results"]["tnr"])
 
     # Pretty-print results
     print(json.dumps(output, indent=4))
