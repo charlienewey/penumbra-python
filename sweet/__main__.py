@@ -49,7 +49,7 @@ def gen_file_list(ls):
             file_list.extend(f_list)
         else:
             file_list.append(_glob)
-    return file_list
+    return sorted(file_list)
 
 
 def make_method(method, *args):
@@ -90,13 +90,13 @@ def extract_features_and_compare(feature, clustering, shadow_seg, ground_truth, 
     clus_im = clustering["method"](feat_im)
     shadow = shadow_seg["method"](image, clus_im)
 
-    results = {}
+    output = {}
     for test in tests:
         test_method = test["method"]
         name = ".".join([test["name"], test["method"].__name__])
-        results[name] = test_method(ground_truth, shadow)
+        output[name] = test_method(ground_truth, shadow)
 
-    return results
+    return output
 
 
 def construct_function_list(config, package):
@@ -171,10 +171,13 @@ if __name__ == "__main__":
     shadow_chain = construct_function_list(config, "shadow")
     testing_chain = construct_function_list(config, "metrics")
 
+    total_processes = (len(feat_chain) * len(cluster_chain) * len(shadow_chain)) * len(images)
+    print("Dispatching %d processes..." % (total_processes))
+
     # Here the function chains in prep_chain and feat_chain are applied. Each function in the
     # preprocessing chain is applied to each image in series, and the preprocessed images are then
     # run through each feature extraction algorithm individually. These results are then tested.
-    results = []
+    output = []
     pl = multiprocessing.Pool(multiprocessing.cpu_count() - 1)
     # extract features and compare ground truth
     for feature in feat_chain:
@@ -204,7 +207,7 @@ if __name__ == "__main__":
                 if "parameters" in shadow_seg:
                     combination["shadow_seg"].update({"parameters": shadow_seg["parameters"]})
 
-                results.append(combination)
+                output.append(combination)
 
                 # iterate through files, testing each pair of ground truth/input
                 for i in range(0, len(ground_truths)):
@@ -217,38 +220,39 @@ if __name__ == "__main__":
                         im = link["method"](im)
                     assert len(gt) == len(im)
 
-                    if "parameters" in feature:
-                        sys.stderr.write("Dispatching: %s%s\n" % (feature["name"], feature["parameters"]))
-                    else:
-                        sys.stderr.write("Dispatching: %s()\n" % (feature["name"]))
-
                     r = apply_async(
                         pl,
                         extract_features_and_compare,
                         (feature, clustering, shadow_seg, gt, im, testing_chain)
                     )
+
                     combination["results"].append(r)
 
     # Close the pool, and wait for all of the subprocesses to finish whatever they were doing
-    sys.stderr.write("Waiting for subprocesses to finish...\n")
+    sys.stderr.write("Dispatched all tasks, waiting for processes to finish...\n")
     pl.close()
     pl.join()
 
     # Get results now that processing has finished
-    for combination in results:
-        results_list = combination["results"]
-        fetched_results_list = []
-        for result in results_list:
-            fetched_results_list.append(result.get())
-        combination["results"] = fetched_results_list
+    for combination in output:
+        output_list = combination["results"]
+        fetched_output_list = []
+        for result in output_list:
+            fetched_output_list.append(result.get())
+        combination["results"] = fetched_output_list
 
-        print(len(combination["results"]))
-
-
-    #results = sorted([r.get() for r in results], key=lambda x: [x[s_key] for s_key in sort_keys])
-
-    # Combine and sort results
-    #sort_keys = config["sort"]["keys"]
+    # Reduce the list of dictionaries into a single, averaged dictionary
+    for combination in output:
+        results = {}
+        for result in combination["results"]:
+            for test, value in result.items():
+                if test in results:
+                    results[test] += value
+                else:
+                    results[test] = value
+        for key, value in results.items():
+            results[key] = value / len(combination["results"])
+        combination["results"] = results
 
     # Pretty-print results
-    print(json.dumps(results, indent=4))
+    print(json.dumps(output, indent=4))
