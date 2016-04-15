@@ -1,0 +1,5 @@
+input:
+    ground_truths:
+        - ../data/static/lo-res/smooth-slabs/ground-truth/*.png
+    images:
+        - ../data/static/lo-res/smooth-slabs/images/*.png

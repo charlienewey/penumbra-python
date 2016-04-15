@@ -1,0 +1,5 @@
+input:
+    ground_truths:
+        - ../data/static/lo-res/bobbly-slabs/ground-truth/*.png
+    images:
+        - ../data/static/lo-res/bobbly-slabs/images/*.png

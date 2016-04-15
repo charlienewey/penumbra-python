@@ -1,0 +1,12 @@
+
+input:
+    ground_truths:
+        - ../data/static/lo-res/bobbly-slabs/ground-truth/*.png
+        - ../data/static/lo-res/bricks/ground-truth/*.png
+        - ../data/static/lo-res/smooth-slabs/ground-truth/*.png
+        - ../data/static/lo-res/tarmac/ground-truth/*.png
+    images:
+        - ../data/static/lo-res/bobbly-slabs/images/*.png
+        - ../data/static/lo-res/bricks/images/*.png
+        - ../data/static/lo-res/smooth-slabs/images/*.png
+        - ../data/static/lo-res/tarmac/images/*.png
