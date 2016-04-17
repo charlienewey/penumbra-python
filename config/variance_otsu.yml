@@ -8,7 +8,7 @@ preprocess:
       description: "applies a gaussian blur kernel to the image"
       method: gaussian
       parameters:
-          - [8]         # blur radius
+          - [2]         # blur radius
 
     - name: local_max
       description: "takes the local maxima over a specified neighbourhood"
@@ -23,7 +23,7 @@ features:
       description: "local binary patterns"
       method: lbp
       parameters:
-          - [10]        # number of points to sample
+          - [15]        # number of points to sample
           - [5]         # radius
           - ["uniform"] # method
 
@@ -47,20 +47,20 @@ shadow:
 # the tests used to evaluate each technique
 metrics:
     - name: binary_classification
-      description: "true positive rate"
-      method: true_positive_rate
+      description: "true positives"
+      method: true_positives
 
     - name: binary_classification
-      description: "true negative rate"
-      method: true_negative_rate
+      description: "true negatives"
+      method: true_negatives
 
     - name: binary_classification
-      description: "false positive rate"
-      method: false_positive_rate
+      description: "false positives"
+      method: false_positives
 
     - name: binary_classification
-      description: "false negative rate"
-      method: false_negative_rate
+      description: "false negatives"
+      method: false_negatives
 
 
 # sort results
