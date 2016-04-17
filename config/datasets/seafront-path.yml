@@ -1,0 +1,5 @@
+input:
+    ground_truths:
+        - ../data/active/lo-res/seafront-gravel/ground-truth/*.png
+    images:
+        - ../data/active/lo-res/seafront-gravel/images/*.png

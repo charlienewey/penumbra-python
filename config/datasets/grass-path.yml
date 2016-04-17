@@ -1,0 +1,5 @@
+input:
+    ground_truths:
+        - ../data/active/lo-res/grass-path/ground-truth/*.png
+    images:
+        - ../data/active/lo-res/grass-path/images/*.png
